@@ -143,8 +143,8 @@
     input[type="file"]{display:none}
     /* ── 홈 대시보드 ── */
     .home-wrap{display:flex;flex-direction:column;gap:6px}
-    .top-row{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-    .month-panel{background:linear-gradient(160deg,#4F46E5 0%,#7C3AED 100%);border-radius:13px;padding:9px 11px;color:white}
+    .top-row{display:grid;grid-template-columns:1fr 1fr;gap:6px;align-items:stretch}
+    .month-panel{background:linear-gradient(160deg,#4F46E5 0%,#7C3AED 100%);border-radius:13px;padding:9px 11px;color:white;height:100%;box-sizing:border-box;display:flex;flex-direction:column}
     .mp-title{font-size:10px;opacity:.8;font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:6px}
     .mp-row{margin-bottom:5px}
     .mp-label{font-size:9px;opacity:.8;margin-bottom:1px}
@@ -1227,9 +1227,23 @@ function renderHome(){
         <div class="mp-label">${lang==='ko'?'일일 목표 대비':'vs Daily Target'}</div>
         <div class="mp-today-diff ${diffClass}" style="margin-top:4px;font-size:16px">${diffText}</div>
       </div>
-      <div class="mp-row" style="margin-top:8px;margin-bottom:0">
+      <div class="mp-row" style="margin-top:8px;margin-bottom:6px">
         <div class="mp-label">${lang==='ko'?'남은 날':'Days left'}</div>
         <div class="mp-val" style="font-size:14px">${daysInMonth-todayNum}${lang==='ko'?'일':'d'}</div>
+      </div>
+      <div style="background:rgba(255,255,255,.12);border-radius:8px;padding:7px 9px">
+        <div style="font-size:9px;opacity:.8;margin-bottom:5px">${lang==='ko'?`${todayNum}일 중 달성 현황`:`${todayNum} days so far`}</div>
+        <div style="display:flex;gap:6px">
+          <div style="flex:1;text-align:center">
+            <div style="font-size:16px;font-weight:700;color:#90EEA0">${(() => { let ok=0; for(let i=1;i<=todayNum;i++){ const s=dayMap[i]?.total||0; if(s<=b.daily) ok++; } return ok; })()}</div>
+            <div style="font-size:9px;opacity:.8;margin-top:1px">✅ ${lang==='ko'?'달성':'Met'}</div>
+          </div>
+          <div style="width:1px;background:rgba(255,255,255,.2)"></div>
+          <div style="flex:1;text-align:center">
+            <div style="font-size:16px;font-weight:700;color:#FFB3AE">${(() => { let over=0; for(let i=1;i<=todayNum;i++){ const s=dayMap[i]?.total||0; if(s>b.daily) over++; } return over; })()}</div>
+            <div style="font-size:9px;opacity:.8;margin-top:1px">❌ ${lang==='ko'?'초과':'Over'}</div>
+          </div>
+        </div>
       </div>
     </div>` : `
     <div class="month-panel" style="background:linear-gradient(160deg,#444441 0%,#5F5E5A 100%)">
