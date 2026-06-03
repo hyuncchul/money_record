@@ -9,26 +9,31 @@
   <title>용돈 관리</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#F2F2F7;color:#1C1C1E;min-height:100dvh;padding-bottom:calc(env(safe-area-inset-bottom)+16px)}
-    .header{background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);padding:calc(env(safe-area-inset-top)+20px) 20px 20px;color:white}
+    /* 전체 레이아웃: 뷰포트 고정 */
+    html,body{height:100dvh;overflow:hidden}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#F2F2F7;color:#1C1C1E;display:flex;flex-direction:column}
+    /* ── 헤더 (콤팩트) ── */
+    .header{background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);padding:calc(env(safe-area-inset-top)+10px) 16px 12px;color:white;flex-shrink:0}
     .header-top{display:flex;justify-content:space-between;align-items:flex-start}
-    /* ── 헤더 ── */
-    .header-month{font-size:22px;opacity:.9;margin-bottom:2px;font-weight:600}
-    .header-balance{font-size:30px;font-weight:700;margin-bottom:14px;letter-spacing:-0.5px}
+    .header-month{font-size:14px;opacity:.85;margin-bottom:1px;font-weight:500}
+    .header-balance{font-size:24px;font-weight:700;margin-bottom:10px;letter-spacing:-0.5px}
     .header-right{display:flex;gap:8px;align-items:flex-start}
-    .hdr-btn{background:rgba(255,255,255,.2);border:none;border-radius:10px;padding:8px 12px;color:white;cursor:pointer;font-size:13px;font-weight:600;font-family:inherit;line-height:1;display:flex;align-items:center;gap:4px}
-    .summary-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .summary-card{background:rgba(255,255,255,.18);border-radius:14px;padding:11px 13px}
-    .summary-label{font-size:12px;opacity:.85;margin-bottom:4px;display:flex;align-items:center;gap:4px}
-    .summary-amount{font-size:17px;font-weight:600}
+    .hdr-btn{background:rgba(255,255,255,.2);border:none;border-radius:9px;padding:6px 10px;color:white;cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;line-height:1;display:flex;align-items:center;gap:4px}
+    .summary-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .summary-card{background:rgba(255,255,255,.18);border-radius:12px;padding:8px 11px}
+    .summary-label{font-size:11px;opacity:.85;margin-bottom:2px;display:flex;align-items:center;gap:3px}
+    .summary-amount{font-size:15px;font-weight:600}
     /* ── 탭 ── */
-    .tab-bar{display:flex;background:white;border-bottom:1px solid #E5E5EA;position:sticky;top:0;z-index:10}
-    .tab{flex:1;padding:9px 4px;text-align:center;font-size:11px;color:#8E8E93;cursor:pointer;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:2px}
-    .tab svg{width:20px;height:20px}
+    .tab-bar{display:flex;background:white;border-bottom:1px solid #E5E5EA;flex-shrink:0;z-index:10}
+    .tab{flex:1;padding:7px 4px;text-align:center;font-size:10px;color:#8E8E93;cursor:pointer;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:2px}
+    .tab svg{width:18px;height:18px}
     .tab.active{color:#4F46E5;border-bottom-color:#4F46E5}
     /* ── 콘텐츠 공통 ── */
-    .content{padding:12px;display:none}
+    .content{padding:10px;display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
     .content.active{display:block}
+    /* 홈 탭만 overflow 숨김 (한 화면 고정) */
+    #content-home{overflow:hidden;display:none;flex-direction:column}
+    #content-home.active{display:flex}
     .section-title{font-size:12px;color:#8E8E93;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
     /* ── 내역 ── */
     .tx-item{background:white;border-radius:12px;padding:11px 13px;margin-bottom:8px;display:flex;align-items:center;gap:11px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
@@ -141,39 +146,39 @@
     .toast{position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#1C1C1E;color:white;padding:10px 20px;border-radius:18px;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s;white-space:nowrap;z-index:400;pointer-events:none}
     .toast.show{opacity:1}
     input[type="file"]{display:none}
-    /* ── 홈 대시보드 ── */
-    .home-wrap{display:flex;flex-direction:column;gap:10px}
-    .top-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .month-panel{background:linear-gradient(160deg,#4F46E5 0%,#7C3AED 100%);border-radius:16px;padding:14px 13px;color:white}
-    .mp-title{font-size:12px;opacity:.8;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px}
-    .mp-row{margin-bottom:10px}
-    .mp-label{font-size:11px;opacity:.8;margin-bottom:3px}
-    .mp-val{font-size:19px;font-weight:700;letter-spacing:-0.3px}
-    .mp-sub{font-size:11px;opacity:.7;margin-top:1px}
-    .mp-divider{height:1px;background:rgba(255,255,255,.2);margin:10px 0}
-    .mp-progress-track{height:6px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;margin-bottom:4px}
+    /* ── 홈 대시보드 (한 화면 고정) ── */
+    .home-wrap{display:flex;flex-direction:column;gap:8px;height:100%;padding:10px 10px calc(env(safe-area-inset-bottom)+10px)}
+    .top-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0}
+    .month-panel{background:linear-gradient(160deg,#4F46E5 0%,#7C3AED 100%);border-radius:14px;padding:11px 12px;color:white}
+    .mp-title{font-size:11px;opacity:.8;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
+    .mp-row{margin-bottom:7px}
+    .mp-label{font-size:10px;opacity:.8;margin-bottom:2px}
+    .mp-val{font-size:17px;font-weight:700;letter-spacing:-0.3px}
+    .mp-sub{font-size:10px;opacity:.7;margin-top:1px}
+    .mp-divider{height:1px;background:rgba(255,255,255,.2);margin:8px 0}
+    .mp-progress-track{height:5px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;margin-bottom:3px}
     .mp-progress-fill{height:100%;border-radius:3px;transition:width .5s}
-    .mp-progress-labels{display:flex;justify-content:space-between;font-size:10px;opacity:.7}
-    .mp-today-box{background:rgba(255,255,255,.15);border-radius:10px;padding:9px 10px;margin-top:10px}
-    .mp-today-label{font-size:11px;opacity:.85;margin-bottom:4px}
-    .mp-today-val{font-size:21px;font-weight:700}
-    .mp-today-diff{font-size:13px;font-weight:700;margin-top:4px;padding:4px 10px;border-radius:12px;display:inline-block}
+    .mp-progress-labels{display:flex;justify-content:space-between;font-size:9px;opacity:.7}
+    .mp-today-box{background:rgba(255,255,255,.15);border-radius:9px;padding:7px 9px;margin-top:8px}
+    .mp-today-label{font-size:10px;opacity:.85;margin-bottom:3px}
+    .mp-today-val{font-size:18px;font-weight:700}
+    .mp-today-diff{font-size:12px;font-weight:700;margin-top:3px;padding:3px 9px;border-radius:11px;display:inline-block}
     .mp-today-diff.under{background:rgba(52,199,89,.25);color:#90EEA0}
     .mp-today-diff.over{background:rgba(255,59,48,.25);color:#FFB3AE}
     .mp-today-diff.exact{background:rgba(255,255,255,.2);color:white}
-    /* ── 세로 막대 그래프 ── */
-    .chart-panel{background:white;border-radius:16px;padding:10px 8px 6px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-    .cp-title{font-size:12px;color:#8E8E93;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;padding:0 4px}
-    .cp-legend{display:flex;gap:10px;padding:0 4px;margin-bottom:2px}
-    .cp-legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#8E8E93}
+    /* ── 세로 막대 그래프 (남은 공간 채움) ── */
+    .chart-panel{background:white;border-radius:14px;padding:9px 8px 5px;box-shadow:0 1px 4px rgba(0,0,0,.07);flex:1;display:flex;flex-direction:column;min-height:0}
+    .cp-title{font-size:11px;color:#8E8E93;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;padding:0 3px;flex-shrink:0}
+    .cp-legend{display:flex;gap:10px;padding:0 3px;margin-bottom:2px;flex-shrink:0}
+    .cp-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#8E8E93}
     .cp-legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
-    .bar-chart-area{position:relative;height:195px;overflow-x:auto;overflow-y:hidden}
-    .bar-chart-inner{display:flex;align-items:flex-end;gap:2px;height:100%;min-width:100%;padding:0 2px}
-    .bar-col{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;min-width:7px;height:100%;justify-content:flex-end;position:relative}
+    .bar-chart-area{position:relative;flex:1;overflow-x:hidden;overflow-y:hidden;min-height:0}
+    .bar-chart-inner{display:flex;align-items:flex-end;gap:2px;height:100%;width:100%;padding:0 2px}
+    .bar-col{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;min-width:0;height:100%;justify-content:flex-end;position:relative}
     .bar-col.is-today .bar-target{outline:1.5px solid #4F46E5;outline-offset:1px;border-radius:2px}
-    .bar-target{position:absolute;bottom:0;width:100%;border-radius:2px 2px 0 0;opacity:.25;background:#4F46E5}
-    .bar-actual{position:absolute;bottom:0;width:70%;border-radius:2px 2px 0 0;z-index:1}
-    .bar-day-label{font-size:8px;color:#8E8E93;text-align:center;margin-top:2px;flex-shrink:0;line-height:1}
+    .bar-target{position:absolute;bottom:16px;width:100%;border-radius:2px 2px 0 0;opacity:.25;background:#4F46E5}
+    .bar-actual{position:absolute;bottom:16px;width:70%;border-radius:2px 2px 0 0;z-index:1}
+    .bar-day-label{position:absolute;bottom:0;font-size:8px;color:#8E8E93;text-align:center;line-height:14px;width:100%}
     .bar-day-label.is-today{color:#4F46E5;font-weight:700}
     .bar-day-label.is-sun{color:#FF3B30}
     .bar-day-label.is-sat{color:#4F46E5}
@@ -1113,8 +1118,8 @@ function renderHome(){
 
     bars += `
       <div class="bar-col${isToday?' is-today':''}${isFuture?' bar-future':''}">
-        <div class="bar-target" style="height:${targetH}%"></div>
-        <div class="bar-actual" style="height:${actualH}%;background:${actualColor}"></div>
+        <div class="bar-target" data-pct="${targetH}"></div>
+        <div class="bar-actual" data-pct="${actualH}" style="background:${actualColor}"></div>
         <div class="${dayLabelClass}">${day}</div>
       </div>`;
   }
@@ -1133,6 +1138,21 @@ function renderHome(){
     </div>`;
 
   el.innerHTML = `<div class="home-wrap"><div class="top-row">${leftPanel}${todayPanel}</div>${rightPanel}</div>`;
+  // 막대 높이를 실제 bar-chart-area 높이 기준으로 다시 계산
+  requestAnimationFrame(()=>{
+    const area = el.querySelector('.bar-chart-area');
+    if(!area) return;
+    const areaH = area.clientHeight - 16; // 16px = 날짜 라벨 영역
+    if(areaH <= 0) return;
+    el.querySelectorAll('.bar-target').forEach(b=>{
+      const pct = parseFloat(b.dataset.pct||0);
+      b.style.height = Math.round(pct/100*areaH)+'px';
+    });
+    el.querySelectorAll('.bar-actual').forEach(b=>{
+      const pct = parseFloat(b.dataset.pct||0);
+      b.style.height = Math.round(pct/100*areaH)+'px';
+    });
+  });
 
 }
 
