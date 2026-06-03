@@ -187,8 +187,12 @@
 <!-- Header -->
 <div class="header">
   <div class="header-top">
-    <div>
-      <div class="header-month" id="header-month"></div>
+    <div style="flex:1">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px">
+        <button onclick="moveMonth(-1)" style="background:white;border:none;border-radius:20px;color:#4F46E5;font-size:18px;font-weight:700;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.18);flex-shrink:0">‹</button>
+        <div class="header-month" id="header-month" style="cursor:pointer;flex:1;text-align:center" onclick="goToCurrentMonth()"></div>
+        <button onclick="moveMonth(1)" id="btn-month-next" style="background:white;border:none;border-radius:20px;color:#4F46E5;font-size:18px;font-weight:700;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.18);flex-shrink:0">›</button>
+      </div>
       <div id="lbl-balance" style="font-size:13px;opacity:.8;margin-bottom:2px;letter-spacing:.3px"></div>
       <div class="header-balance" id="balance">₩0</div>
     </div>
@@ -389,6 +393,19 @@
     </div>
     <button class="submit-btn" onclick="saveEdit()" data-i18n="btn_save"></button>
     <button class="cancel-btn" onclick="closeModal()" data-i18n="btn_cancel"></button>
+  </div>
+</div>
+
+<!-- 신규월 이월 알림 -->
+<div class="alert-modal" id="newmonth-alert">
+  <div class="alert-box">
+    <div class="alert-icon">🗓️</div>
+    <div class="alert-title" id="newmonth-title"></div>
+    <div class="alert-desc" id="newmonth-desc"></div>
+    <div class="alert-btn-row">
+      <button class="alert-btn-main" onclick="doCarryover()" id="btn-carryover"></button>
+      <button class="alert-btn-sub" onclick="skipCarryover()" id="btn-skip-carryover"></button>
+    </div>
   </div>
 </div>
 
@@ -666,12 +683,103 @@ function initCurrencyUI(){
 function save(){localStorage.setItem('pocket_txs_v4',JSON.stringify(transactions));}
 function today(){return new Date().toISOString().split('T')[0];}
 function getYM(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');}
+
+// ── 월 네비게이션 ──────────────────────────────────────────
+let viewMonth = getYM(); // 현재 보고 있는 월
+
+function ymLabel(ym){
+  const [y,m]=ym.split('-');
+  return lang==='ko'?`${y}년 ${parseInt(m)}월`:`${m}/${y}`;
+}
+function moveMonth(delta){
+  const [y,m]=viewMonth.split('-').map(Number);
+  const d=new Date(y,m-1+delta,1);
+  const ny=d.getFullYear();
+  const nm=d.getMonth()+1;
+  const next=ny+'-'+String(nm).padStart(2,'0');
+  if(next>getYM()) return; // 미래 월 이동 금지
+  viewMonth=next;
+  // 미래 이동 버튼 비활성화
+  document.getElementById('btn-month-next').style.opacity=viewMonth>=getYM()?'.3':'1';
+  render();
+}
+function goToCurrentMonth(){
+  viewMonth=getYM();
+  document.getElementById('btn-month-next').style.opacity='.3';
+  render();
+}
+
+// ── 전월 잔액 이월 ────────────────────────────────────────
+let _pendingCarryover=0;
+
+function checkNewMonth(){
+  const lastVisit=localStorage.getItem('pocket_last_visit_month')||'';
+  const cur=getYM();
+  localStorage.setItem('pocket_last_visit_month',cur);
+  if(!lastVisit||lastVisit===cur) return; // 같은 달이면 스킵
+
+  // 전월 잔액 계산
+  const [y,m]=cur.split('-').map(Number);
+  const pd=new Date(y,m-2,1);
+  const prevYM=pd.getFullYear()+'-'+String(pd.getMonth()+1).padStart(2,'0');
+  const prevTxs=transactions.filter(tx=>tx.date.startsWith(prevYM));
+  const prevInc=prevTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const prevExp=prevTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const balance=prevInc-prevExp;
+
+  // 이미 이월 처리됐는지 확인
+  const alreadyCarried=transactions.some(tx=>tx.date.startsWith(cur)&&tx.cat==='이월');
+  if(alreadyCarried) return;
+
+  _pendingCarryover=balance;
+  const title=lang==='ko'?'새 달이 시작됐어요 🎉':'New Month Started 🎉';
+  const prevLabel=ymLabel(prevYM);
+  let desc='';
+  if(balance>0){
+    desc=lang==='ko'
+      ?`${prevLabel} 잔액 <strong>${fmt(balance)}</strong>을<br>이번 달로 이월할까요?`
+      :`Carry over <strong>${fmt(balance)}</strong> from ${prevLabel}?`;
+  } else {
+    desc=lang==='ko'
+      ?`${prevLabel}은 잔액이 없어요.<br>이번 달 수입을 추가해 주세요.`
+      :`No balance from ${prevLabel}.<br>Please add this month's income.`;
+  }
+  document.getElementById('newmonth-title').textContent=title;
+  document.getElementById('newmonth-desc').innerHTML=desc;
+  document.getElementById('btn-carryover').textContent=
+    balance>0?(lang==='ko'?`${fmt(balance)} 이월하기`:`Carry over ${fmt(balance)}`):(lang==='ko'?'수입 추가하러 가기':'Add income');
+  document.getElementById('btn-skip-carryover').textContent=lang==='ko'?'나중에':'Later';
+  setTimeout(()=>document.getElementById('newmonth-alert').classList.add('open'),800);
+}
+
+function doCarryover(){
+  document.getElementById('newmonth-alert').classList.remove('open');
+  if(_pendingCarryover>0){
+    const firstDay=getYM()+'-01';
+    transactions.push({
+      id:Date.now(),type:'income',
+      desc:lang==='ko'?'전월 이월금':'Carryover',
+      amount:_pendingCarryover,date:firstDay,cat:'이월'
+    });
+    save();render();
+    showToast(lang==='ko'?`${fmt(_pendingCarryover)} 이월됐어요 ✅`:`Carried over ${fmt(_pendingCarryover)} ✅`);
+  } else {
+    switchTab('add');selectType('income');
+  }
+  _pendingCarryover=0;
+}
+function skipCarryover(){
+  document.getElementById('newmonth-alert').classList.remove('open');
+  _pendingCarryover=0;
+}
 function getIcon(cat){const all=[...presets.income,...presets.expense];const f=all.find(p=>p.cat===cat);return f?f.emoji:'📌';}
 
 // ── 요약 ──
 function updateSummary(){
-  const ym=getYM(),d=new Date();
-  document.getElementById('header-month').textContent=t('month_label',d.getFullYear(),d.getMonth()+1);
+  const ym=viewMonth;
+  const [vy,vm]=ym.split('-').map(Number);
+  document.getElementById('header-month').textContent=ymLabel(ym)+(ym<getYM()?' ◀':'');
+  document.getElementById('btn-month-next').style.opacity=ym>=getYM()?'.3':'1';
   const m=transactions.filter(t=>t.date.startsWith(ym));
   const inc=m.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
   const exp=m.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
@@ -683,7 +791,7 @@ function updateSummary(){
 // ── 내역 ──
 function renderList(){
   const el=document.getElementById('tx-list');
-  const ym=getYM();
+  const ym=viewMonth;
   const monthly=transactions.filter(tx=>tx.date.startsWith(ym)).sort((a,b)=>b.date.localeCompare(a.date)||b.id-a.id);
   if(!monthly.length){
     el.innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">${t('empty_list').replace('\n','<br>')}</div></div>`;return;
@@ -739,7 +847,7 @@ function buildCatSection(items,total,prefix,isIncome){
 
 function renderChart(){
   const el=document.getElementById('chart-content');
-  const ym=getYM();
+  const ym=viewMonth;
   const monthly=transactions.filter(tx=>tx.date.startsWith(ym));
   const incItems=monthly.filter(tx=>tx.type==='income');
   const expItems=monthly.filter(tx=>tx.type==='expense');
@@ -755,7 +863,43 @@ function renderChart(){
   html+=buildCatSection(incItems,inc,'inc',true);
   html+=`<div class="chart-section-title" style="margin-top:20px">${t('chart_expense_section')}</div>`;
   html+=buildCatSection(expItems,exp,'exp',false);
+
+  // ── 월별 요약 ──
+  html+=`<div class="chart-section-title" style="margin-top:24px">${lang==='ko'?'📅 월별 요약':'📅 Monthly Summary'}</div>`;
+  html+=`<div style="background:white;border-radius:12px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)">`;
+  const allMonths=[];
+  const txMonths=[...new Set(transactions.map(tx=>tx.date.slice(0,7)))].sort((a,b)=>b.localeCompare(a));
+  txMonths.forEach(mym=>{
+    const mTxs=transactions.filter(tx=>tx.date.startsWith(mym));
+    const mInc=mTxs.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+    const mExp=mTxs.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+    const mBal=mInc-mExp;
+    const isView=mym===viewMonth;
+    allMonths.push({mym,mInc,mExp,mBal,isView});
+  });
+  if(!allMonths.length){
+    html+=`<div style="padding:16px;text-align:center;font-size:12px;color:#8E8E93">${lang==='ko'?'데이터가 없어요':'No data yet'}</div>`;
+  } else {
+    html+=allMonths.map((m,i)=>`
+      <div onclick="jumpToMonth('${m.mym}')" style="display:flex;align-items:center;padding:11px 14px;border-bottom:${i<allMonths.length-1?'1px solid #F2F2F7':'none'};cursor:pointer;background:${m.isView?'#EEF2FF':'white'}">
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:600;color:${m.isView?'#4F46E5':'#1C1C1E'}">${ymLabel(m.mym)}${m.isView?` <span style="font-size:10px;background:#4F46E5;color:white;padding:1px 6px;border-radius:8px;vertical-align:middle">${lang==='ko'?'보는 중':'Viewing'}</span>`:''}</div>
+          <div style="font-size:11px;color:#8E8E93;margin-top:2px">${lang==='ko'?`수입 ${fmt(m.mInc)} / 지출 ${fmt(m.mExp)}`:`Inc ${fmt(m.mInc)} / Exp ${fmt(m.mExp)}`}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:14px;font-weight:700;color:${m.mBal>=0?'#4F46E5':'#FF3B30'}">${m.mBal>=0?'+':''}${fmt(m.mBal)}</div>
+          <div style="font-size:10px;color:#8E8E93">${lang==='ko'?'잔액':'Balance'}</div>
+        </div>
+      </div>`).join('');
+  }
+  html+=`</div>`;
   el.innerHTML=html;
+}
+
+function jumpToMonth(ym){
+  viewMonth=ym;
+  render();
+  switchTab('list');
 }
 function toggleDetail(id,btn){
   const el=document.getElementById(id);const open=el.classList.toggle('open');
@@ -985,10 +1129,12 @@ function renderHome(){
   if(!el) return;
   const b = loadBudget();
   const d = new Date();
-  const ym = getYM();
+  const ym = viewMonth;
+  const isCurrentMonth = ym === getYM();
   const todayStr = today();
-  const daysInMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
-  const todayNum = d.getDate();
+  const [vy,vm2]=ym.split('-').map(Number);
+  const daysInMonth = new Date(vy, vm2, 0).getDate();
+  const todayNum = isCurrentMonth ? d.getDate() : daysInMonth; // 과거 월은 말일 기준
   const dayNamesShort = lang==='ko'?['일','월','화','수','목','금','토']:['S','M','T','W','T','F','S'];
 
   // 날짜별 지출 맵
@@ -1060,45 +1206,60 @@ function renderHome(){
       </div>
     </div>`;
 
-  // ── 오른쪽 패널 HTML (오늘 현황) ──
-  const todayPanel = `
+  // ── 오른쪽 패널 (현재 달=오늘 현황 / 과거 달=월 결산) ──
+  const todayPanel = isCurrentMonth ? `
     <div class="month-panel" style="background:linear-gradient(160deg,#0F6E56 0%,#1D9E75 100%)">
       <div class="mp-title">📅 ${lang==='ko'?'오늘 ('+todayNum+'일)':'Today ('+todayNum+')'}</div>
-
       <div class="mp-row">
         <div class="mp-label">${lang==='ko'?'일 목표':'Target'}</div>
         <div class="mp-val">${fmt(b.daily)}</div>
       </div>
-
       <div class="mp-row">
         <div class="mp-label">${lang==='ko'?'오늘 지출':'Spent'}</div>
         <div class="mp-val">${fmt(todayExp)}</div>
       </div>
-
       <div class="mp-progress-track">
         <div class="mp-progress-fill" style="width:${Math.min(100,Math.round(todayExp/b.daily*100))}%;background:${todayExp>b.daily?'#FF3B30':'rgba(255,255,255,.9)'}"></div>
       </div>
-      <div class="mp-progress-labels">
-        <span>0</span><span>${fmt(b.daily)}</span>
-      </div>
-
+      <div class="mp-progress-labels"><span>0</span><span>${fmt(b.daily)}</span></div>
       <div class="mp-divider"></div>
-
       <div class="mp-row" style="margin-bottom:0">
         <div class="mp-label">${lang==='ko'?'일일 목표 대비':'vs Daily Target'}</div>
         <div class="mp-today-diff ${diffClass}" style="margin-top:4px;font-size:16px">${diffText}</div>
       </div>
-
-      <div class="mp-row" style="margin-top:10px;margin-bottom:0">
-        <div class="mp-label">${lang==='ko'?'이번 달 남은 날':'Days left'}</div>
-        <div class="mp-val" style="font-size:14px">${daysInMonth - todayNum}${lang==='ko'?'일':'d'}</div>
+      <div class="mp-row" style="margin-top:8px;margin-bottom:0">
+        <div class="mp-label">${lang==='ko'?'남은 날':'Days left'}</div>
+        <div class="mp-val" style="font-size:14px">${daysInMonth-todayNum}${lang==='ko'?'일':'d'}</div>
+      </div>
+    </div>` : `
+    <div class="month-panel" style="background:linear-gradient(160deg,#444441 0%,#5F5E5A 100%)">
+      <div class="mp-title">📋 ${lang==='ko'?'월 결산':'Month Summary'}</div>
+      <div class="mp-row">
+        <div class="mp-label">${lang==='ko'?'총 수입':'Total Income'}</div>
+        <div class="mp-val" style="color:#90EEA0">${fmt(monthInc)}</div>
+      </div>
+      <div class="mp-row">
+        <div class="mp-label">${lang==='ko'?'총 지출':'Total Expense'}</div>
+        <div class="mp-val" style="color:#FFB3AE">${fmt(monthExp)}</div>
+      </div>
+      <div class="mp-divider"></div>
+      <div class="mp-row">
+        <div class="mp-label">${lang==='ko'?'최종 잔액':'Final Balance'}</div>
+        <div class="mp-val" style="font-size:18px;${monthInc-monthExp>=0?'':'color:#FFB3AE'}">${fmt(monthInc-monthExp)}</div>
+      </div>
+      <div class="mp-row" style="margin-bottom:0">
+        <div class="mp-label">${lang==='ko'?'일 평균 지출':'Daily avg exp'}</div>
+        <div class="mp-val" style="font-size:14px">${fmt(avgPerDay)}</div>
+      </div>
+      <div style="margin-top:10px">
+        <button onclick="viewMonth='${getYM()}';render()" style="width:100%;padding:7px;background:rgba(255,255,255,.2);border:none;border-radius:8px;color:white;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">${lang==='ko'?'이번 달로 돌아가기':'Go to current month'}</button>
       </div>
     </div>`;
 
   // ── 오른쪽 막대그래프 HTML ──
   let bars = '';
   for(let day=1; day<=daysInMonth; day++){
-    const dow = new Date(d.getFullYear(), d.getMonth(), day).getDay();
+    const dow = new Date(vy, vm2-1, day).getDay();
     const isFuture = day > todayNum;
     const isToday = day === todayNum;
     const spent = dayMap[day]?.total || 0;
@@ -1162,7 +1323,8 @@ document.getElementById('inp-date').value=today();
 if(!localStorage.getItem('pocket_currency')) saveCurrency('HKD');
 initLangUI();initCurrencyUI();initBudgetUI();
 renderQuickBtns();render();
-applyI18n();   // render() 이후 호출해야 동적 생성 텍스트에도 적용됨
+applyI18n();
+checkNewMonth();   // 신규 월 감지 → 이월 알림
 checkAutoBackup();
 </script>
 </body>
