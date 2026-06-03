@@ -133,6 +133,46 @@
     .toast{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#1C1C1E;color:white;padding:9px 18px;border-radius:18px;font-size:11px;font-weight:500;opacity:0;transition:opacity .3s;white-space:nowrap;z-index:400;pointer-events:none}
     .toast.show{opacity:1}
     input[type="file"]{display:none}
+    /* ── 홈 대시보드 ── */
+    .home-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+
+    /* 왼쪽: 월 누적 */
+    .month-panel{background:linear-gradient(160deg,#4F46E5 0%,#7C3AED 100%);border-radius:16px;padding:14px 13px;color:white}
+    .mp-title{font-size:9px;opacity:.75;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+    .mp-row{margin-bottom:10px}
+    .mp-label{font-size:9px;opacity:.75;margin-bottom:2px}
+    .mp-val{font-size:17px;font-weight:700;letter-spacing:-0.3px}
+    .mp-sub{font-size:9px;opacity:.7;margin-top:1px}
+    .mp-divider{height:1px;background:rgba(255,255,255,.2);margin:10px 0}
+    .mp-progress-track{height:6px;background:rgba(255,255,255,.25);border-radius:3px;overflow:hidden;margin-bottom:4px}
+    .mp-progress-fill{height:100%;border-radius:3px;transition:width .5s}
+    .mp-progress-labels{display:flex;justify-content:space-between;font-size:8px;opacity:.65}
+    .mp-today-box{background:rgba(255,255,255,.15);border-radius:10px;padding:9px 10px;margin-top:10px}
+    .mp-today-label{font-size:9px;opacity:.8;margin-bottom:4px}
+    .mp-today-val{font-size:19px;font-weight:700}
+    .mp-today-diff{font-size:10px;font-weight:600;margin-top:3px;padding:3px 8px;border-radius:12px;display:inline-block}
+    .mp-today-diff.under{background:rgba(52,199,89,.25);color:#90EEA0}
+    .mp-today-diff.over{background:rgba(255,59,48,.25);color:#FFB3AE}
+    .mp-today-diff.exact{background:rgba(255,255,255,.2);color:white}
+
+    /* 오른쪽: 세로 막대 그래프 */
+    .chart-panel{background:white;border-radius:16px;padding:12px 8px 8px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    .cp-title{font-size:9px;color:#8E8E93;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:0 4px}
+    .cp-legend{display:flex;gap:8px;padding:0 4px;margin-bottom:8px}
+    .cp-legend-item{display:flex;align-items:center;gap:3px;font-size:8px;color:#8E8E93}
+    .cp-legend-dot{width:6px;height:6px;border-radius:2px;flex-shrink:0}
+    .bar-chart-area{position:relative;height:180px;overflow-x:auto;overflow-y:hidden}
+    .bar-chart-inner{display:flex;align-items:flex-end;gap:2px;height:100%;min-width:100%;padding:0 2px}
+    .bar-col{display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;min-width:7px;height:100%;justify-content:flex-end;position:relative}
+    .bar-col.is-today .bar-target{outline:1.5px solid #4F46E5;outline-offset:1px;border-radius:2px}
+    .bar-target{position:absolute;bottom:0;width:100%;border-radius:2px 2px 0 0;opacity:.25;background:#4F46E5}
+    .bar-actual{position:absolute;bottom:0;width:70%;border-radius:2px 2px 0 0;z-index:1}
+    .bar-day-label{font-size:7px;color:#8E8E93;text-align:center;margin-top:3px;flex-shrink:0;line-height:1}
+    .bar-day-label.is-today{color:#4F46E5;font-weight:700}
+    .bar-day-label.is-sun{color:#FF3B30}
+    .bar-day-label.is-sat{color:#4F46E5}
+    .bar-future .bar-target{opacity:.1}
+    .bar-future .bar-day-label{opacity:.35}
   </style>
 </head>
 <body>
@@ -167,7 +207,11 @@
 
 <!-- Tab bar -->
 <div class="tab-bar">
-  <div class="tab active" id="tab-list" onclick="switchTab('list')">
+  <div class="tab active" id="tab-home" onclick="switchTab('home')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    <span data-i18n="tab_home"></span>
+  </div>
+  <div class="tab" id="tab-list" onclick="switchTab('list')">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
     <span data-i18n="tab_list"></span>
   </div>
@@ -185,8 +229,13 @@
   </div>
 </div>
 
+<!-- 홈(예산) 탭 -->
+<div class="content active" id="content-home">
+  <div id="home-content"></div>
+</div>
+
 <!-- 내역 탭 -->
-<div class="content active" id="content-list">
+<div class="content" id="content-list">
   <div class="section-title" data-i18n="list_title"></div>
   <div id="tx-list"></div>
 </div>
@@ -222,6 +271,21 @@
 
 <!-- 설정 탭 -->
 <div class="content" id="content-settings">
+  <!-- 예산 설정 -->
+  <div class="settings-section">
+    <div class="settings-section-title" data-i18n="set_budget"></div>
+    <div class="form-group">
+      <label class="form-label" data-i18n="budget_monthly_label"></label>
+      <input class="form-input" id="inp-monthly-budget" type="number" inputmode="numeric" min="0" onchange="saveBudgetSettings()" />
+    </div>
+    <div class="form-group" style="margin-bottom:0">
+      <label class="form-label" data-i18n="budget_daily_label"></label>
+      <div style="display:flex;gap:8px;align-items:center">
+        <input class="form-input" id="inp-daily-budget" type="number" inputmode="numeric" min="0" onchange="saveBudgetSettings()" style="flex:1" />
+        <button style="padding:9px 12px;border-radius:9px;background:#F2F2F7;border:none;font-size:10px;color:#4F46E5;font-weight:600;cursor:pointer;white-space:nowrap;font-family:inherit" onclick="autoCalcDaily()" data-i18n="budget_auto_calc"></button>
+      </div>
+    </div>
+  </div>
   <!-- 언어 -->
   <div class="settings-section">
     <div class="settings-section-title" data-i18n="set_language"></div>
@@ -395,6 +459,21 @@ const I18N = {
     tx_count:(n)=>`거래 ${n}건`,
     restore_snap:'복원',
     lang_changed:'한국어로 변경됐어요',
+    tab_home:'홈',
+    set_budget:'🎯 예산 설정',
+    budget_monthly_label:'월 예산',
+    budget_daily_label:'하루 목표',
+    budget_auto_calc:'자동계산',
+    toast_budget_saved:'예산이 저장됐어요 ✅',
+    toast_budget_enter_monthly:'먼저 월 예산을 입력해주세요',
+    hbc_monthly_spent:'이번 달 지출',
+    hbc_remain:'잔여',
+    hbc_monthly_budget:'월 예산',
+    hbc_used:'사용',
+    today_title:'오늘 지출 현황',
+    today_spent:'오늘 지출',
+    today_target:'일 목표',
+    daily_list_title:'이번 달 일별 지출',
   },
   en: {
     tab_list:'History', tab_add:'Add', tab_chart:'Analysis', tab_settings:'Settings',
@@ -450,6 +529,21 @@ const I18N = {
     tx_count:(n)=>`${n} transactions`,
     restore_snap:'Restore',
     lang_changed:'Switched to English',
+    tab_home:'Home',
+    set_budget:'🎯 Budget',
+    budget_monthly_label:'Monthly budget',
+    budget_daily_label:'Daily target',
+    budget_auto_calc:'Auto',
+    toast_budget_saved:'Budget saved ✅',
+    toast_budget_enter_monthly:'Enter monthly budget first',
+    hbc_monthly_spent:'Spent this month',
+    hbc_remain:'Remaining',
+    hbc_monthly_budget:'Monthly budget',
+    hbc_used:'used',
+    today_title:"Today's spending",
+    today_spent:'Spent today',
+    today_target:'Daily target',
+    daily_list_title:'Daily spending this month',
   }
 };
 
@@ -848,13 +942,175 @@ function deleteItem(id){
   transactions=transactions.filter(tx=>tx.id!==id);save();render();showToast(t('toast_deleted'));
 }
 
+// ── 예산 설정 ──
+function loadBudget(){
+  return {
+    monthly: parseFloat(localStorage.getItem('pocket_monthly_budget')||'5000'),
+    daily:   parseFloat(localStorage.getItem('pocket_daily_budget')||'166')
+  };
+}
+function saveBudgetSettings(){
+  const m = parseFloat(document.getElementById('inp-monthly-budget').value)||0;
+  const d = parseFloat(document.getElementById('inp-daily-budget').value)||0;
+  localStorage.setItem('pocket_monthly_budget', m);
+  localStorage.setItem('pocket_daily_budget', d);
+  renderHome();
+  showToast(t('toast_budget_saved'));
+}
+function autoCalcDaily(){
+  const m = parseFloat(document.getElementById('inp-monthly-budget').value)||0;
+  if(!m){showToast(t('toast_budget_enter_monthly'));return;}
+  const d = new Date();
+  const days = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  const daily = Math.floor(m / days);
+  document.getElementById('inp-daily-budget').value = daily;
+  saveBudgetSettings();
+}
+function initBudgetUI(){
+  const b = loadBudget();
+  document.getElementById('inp-monthly-budget').value = b.monthly;
+  document.getElementById('inp-daily-budget').value = b.daily;
+}
+
+// ── 홈 대시보드 ──
+function renderHome(){
+  const el = document.getElementById('home-content');
+  if(!el) return;
+  const b = loadBudget();
+  const d = new Date();
+  const ym = getYM();
+  const todayStr = today();
+  const daysInMonth = new Date(d.getFullYear(), d.getMonth()+1, 0).getDate();
+  const todayNum = d.getDate();
+  const dayNamesShort = lang==='ko'?['일','월','화','수','목','금','토']:['S','M','T','W','T','F','S'];
+
+  // 날짜별 지출 맵
+  const dayMap = {};
+  transactions.filter(tx=>tx.date.startsWith(ym)&&tx.type==='expense').forEach(tx=>{
+    const day = parseInt(tx.date.split('-')[2]);
+    if(!dayMap[day]) dayMap[day]={total:0};
+    dayMap[day].total += tx.amount;
+  });
+
+  // 월 누적 계산
+  const monthExp = Object.values(dayMap).reduce((s,v)=>s+v.total, 0);
+  const monthInc = transactions.filter(tx=>tx.date.startsWith(ym)&&tx.type==='income').reduce((s,tx)=>s+tx.amount,0);
+  const monthRemain = Math.max(0, b.monthly - monthExp);
+  const monthPct = b.monthly > 0 ? Math.min(100, Math.round(monthExp/b.monthly*100)) : 0;
+  const avgPerDay = todayNum > 0 ? Math.round(monthExp / todayNum) : 0;
+  const projectedTotal = avgPerDay * daysInMonth;
+
+  // 오늘 지출
+  const todayExp = dayMap[todayNum]?.total || 0;
+  const todayDiff = b.daily - todayExp;
+  const diffClass = todayDiff > 0 ? 'under' : todayDiff < 0 ? 'over' : 'exact';
+  const diffText = todayDiff === 0 ? '✓'
+    : todayDiff > 0 ? `▼ ${fmt(todayDiff)}` : `▲ ${fmt(Math.abs(todayDiff))}`;
+
+  // 막대그래프 최대값 = 목표의 1.6배 또는 실제최대 중 큰값
+  const maxActual = Math.max(...Object.values(dayMap).map(v=>v.total), b.daily);
+  const chartMax = Math.max(b.daily * 1.6, maxActual);
+
+  // ── 왼쪽 패널 HTML ──
+  const pBarColor = monthPct>90?'#FF3B30':monthPct>70?'#F59E0B':'rgba(255,255,255,.9)';
+  const leftPanel = `
+    <div class="month-panel">
+      <div class="mp-title">${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')} ${lang==='ko'?'월 누적':'Monthly'}</div>
+
+      <div class="mp-row">
+        <div class="mp-label">${t('hbc_monthly_budget')}</div>
+        <div class="mp-val">${fmt(b.monthly)}</div>
+      </div>
+
+      <div class="mp-row">
+        <div class="mp-label">${t('hbc_monthly_spent')}</div>
+        <div class="mp-val">${fmt(monthExp)}</div>
+        <div class="mp-sub">${monthPct}% ${t('hbc_used')}</div>
+      </div>
+
+      <div class="mp-progress-track">
+        <div class="mp-progress-fill" style="width:${monthPct}%;background:${pBarColor}"></div>
+      </div>
+      <div class="mp-progress-labels">
+        <span>0</span><span>${fmt(b.monthly)}</span>
+      </div>
+
+      <div class="mp-divider"></div>
+
+      <div class="mp-row">
+        <div class="mp-label">${t('hbc_remain')}</div>
+        <div class="mp-val" style="font-size:15px">${fmt(monthRemain)}</div>
+      </div>
+
+      <div class="mp-row">
+        <div class="mp-label">${lang==='ko'?'일 평균 지출':'Daily avg'}</div>
+        <div class="mp-val" style="font-size:14px">${fmt(avgPerDay)}</div>
+      </div>
+
+      <div class="mp-row">
+        <div class="mp-label">${lang==='ko'?'예상 월말 지출':'Proj. total'}</div>
+        <div class="mp-val" style="font-size:13px;${projectedTotal>b.monthly?'color:#FFB3AE':''}">${fmt(projectedTotal)}</div>
+      </div>
+
+      <div class="mp-divider"></div>
+
+      <div class="mp-today-box">
+        <div class="mp-today-label">📅 ${lang==='ko'?'오늘 ('+todayNum+'일)':'Today ('+todayNum+')'}</div>
+        <div class="mp-today-val">${fmt(todayExp)}</div>
+        <div class="mp-today-label" style="margin-top:3px">${lang==='ko'?'목표':'Target'}: ${fmt(b.daily)}</div>
+        <div class="mp-today-diff ${diffClass}">${diffText}</div>
+      </div>
+    </div>`;
+
+  // ── 오른쪽 막대그래프 HTML ──
+  let bars = '';
+  for(let day=1; day<=daysInMonth; day++){
+    const dow = new Date(d.getFullYear(), d.getMonth(), day).getDay();
+    const isFuture = day > todayNum;
+    const isToday = day === todayNum;
+    const spent = dayMap[day]?.total || 0;
+
+    // 목표 막대 높이 (%)
+    const targetH = Math.round(b.daily / chartMax * 100);
+    // 실제 막대 높이 (%)
+    const actualH = isFuture ? 0 : Math.round(spent / chartMax * 100);
+    // 색상
+    const actualColor = spent > b.daily ? '#FF3B30' : spent > 0 ? '#34C759' : 'transparent';
+
+    const dayLabelClass = isToday ? 'bar-day-label is-today' : dow===0 ? 'bar-day-label is-sun' : dow===6 ? 'bar-day-label is-sat' : 'bar-day-label';
+
+    bars += `
+      <div class="bar-col${isToday?' is-today':''}${isFuture?' bar-future':''}">
+        <div class="bar-target" style="height:${targetH}%"></div>
+        <div class="bar-actual" style="height:${actualH}%;background:${actualColor}"></div>
+        <div class="${dayLabelClass}">${day}</div>
+      </div>`;
+  }
+
+  const rightPanel = `
+    <div class="chart-panel">
+      <div class="cp-title">${lang==='ko'?'일별 지출 vs 목표':'Daily vs Target'}</div>
+      <div class="cp-legend">
+        <div class="cp-legend-item"><div class="cp-legend-dot" style="background:#4F46E5;opacity:.3"></div>${lang==='ko'?'목표':'Target'} ${fmt(b.daily)}</div>
+        <div class="cp-legend-item"><div class="cp-legend-dot" style="background:#34C759"></div>${lang==='ko'?'미달':'Under'}</div>
+        <div class="cp-legend-item"><div class="cp-legend-dot" style="background:#FF3B30"></div>${lang==='ko'?'초과':'Over'}</div>
+      </div>
+      <div class="bar-chart-area">
+        <div class="bar-chart-inner">${bars}</div>
+      </div>
+    </div>`;
+
+  el.innerHTML = `<div class="home-wrap">${leftPanel}${rightPanel}</div>`;
+}
+
 // ── 탭 ──
 function switchTab(tab){
-  ['list','add','chart','settings'].forEach(t=>{
+  ['home','list','add','chart','settings'].forEach(t=>{
     document.getElementById('tab-'+t)?.classList.toggle('active',t===tab);
-    document.getElementById('content-'+t).classList.toggle('active',t===tab);
+    document.getElementById('content-'+t)?.classList.toggle('active',t===tab);
   });
-  if(tab==='settings')renderSettings();
+  if(tab==='settings'){renderSettings();initBudgetUI();}
+  if(tab==='home') renderHome();
 }
 
 // ── 토스트 ──
@@ -866,9 +1122,11 @@ function showToast(msg){
 document.getElementById('edit-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
 
 // ── 초기화 ──
-function render(){updateSummary();renderList();renderChart();}
+function render(){updateSummary();renderList();renderChart();renderHome();}
 document.getElementById('inp-date').value=today();
-initLangUI();initCurrencyUI();
+// 기본 통화 HKD (최초 실행 시)
+if(!localStorage.getItem('pocket_currency')) saveCurrency('HKD');
+initLangUI();initCurrencyUI();initBudgetUI();
 renderQuickBtns();render();
 applyI18n();   // render() 이후 호출해야 동적 생성 텍스트에도 적용됨
 checkAutoBackup();
