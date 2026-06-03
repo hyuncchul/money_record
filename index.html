@@ -9,11 +9,9 @@
   <title>용돈 관리</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    /* 전체 레이아웃: 뷰포트 고정 */
-    html,body{height:100dvh;overflow:hidden}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#F2F2F7;color:#1C1C1E;display:flex;flex-direction:column}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',sans-serif;background:#F2F2F7;color:#1C1C1E;min-height:100dvh}
     /* ── 헤더 (콤팩트) ── */
-    .header{background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);padding:calc(env(safe-area-inset-top)+10px) 16px 12px;color:white;flex-shrink:0}
+    .header{background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);padding:calc(env(safe-area-inset-top)+10px) 16px 12px;color:white}
     .header-top{display:flex;justify-content:space-between;align-items:flex-start}
     .header-month{font-size:14px;opacity:.85;margin-bottom:1px;font-weight:500}
     .header-balance{font-size:24px;font-weight:700;margin-bottom:10px;letter-spacing:-0.5px}
@@ -24,16 +22,13 @@
     .summary-label{font-size:11px;opacity:.85;margin-bottom:2px;display:flex;align-items:center;gap:3px}
     .summary-amount{font-size:15px;font-weight:600}
     /* ── 탭 ── */
-    .tab-bar{display:flex;background:white;border-bottom:1px solid #E5E5EA;flex-shrink:0;z-index:10}
+    .tab-bar{display:flex;background:white;border-bottom:1px solid #E5E5EA;position:sticky;top:0;z-index:10}
     .tab{flex:1;padding:7px 4px;text-align:center;font-size:10px;color:#8E8E93;cursor:pointer;border-bottom:2px solid transparent;display:flex;flex-direction:column;align-items:center;gap:2px}
     .tab svg{width:18px;height:18px}
     .tab.active{color:#4F46E5;border-bottom-color:#4F46E5}
     /* ── 콘텐츠 공통 ── */
-    .content{padding:10px;display:none;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch}
+    .content{padding:10px;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(env(safe-area-inset-bottom)+10px)}
     .content.active{display:block}
-    /* 홈 탭만 overflow 숨김 (한 화면 고정) */
-    #content-home{overflow:hidden;display:none;flex-direction:column}
-    #content-home.active{display:flex}
     .section-title{font-size:12px;color:#8E8E93;font-weight:600;margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px}
     /* ── 내역 ── */
     .tx-item{background:white;border-radius:12px;padding:11px 13px;margin-bottom:8px;display:flex;align-items:center;gap:11px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
@@ -146,9 +141,9 @@
     .toast{position:fixed;bottom:calc(72px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);background:#1C1C1E;color:white;padding:10px 20px;border-radius:18px;font-size:13px;font-weight:500;opacity:0;transition:opacity .3s;white-space:nowrap;z-index:400;pointer-events:none}
     .toast.show{opacity:1}
     input[type="file"]{display:none}
-    /* ── 홈 대시보드 (한 화면 고정) ── */
-    .home-wrap{display:flex;flex-direction:column;gap:8px;height:100%;padding:10px 10px calc(env(safe-area-inset-bottom)+10px)}
-    .top-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;flex-shrink:0}
+    /* ── 홈 대시보드 ── */
+    .home-wrap{display:flex;flex-direction:column;gap:8px}
+    .top-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .month-panel{background:linear-gradient(160deg,#4F46E5 0%,#7C3AED 100%);border-radius:14px;padding:11px 12px;color:white}
     .mp-title{font-size:11px;opacity:.8;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px}
     .mp-row{margin-bottom:7px}
@@ -166,19 +161,20 @@
     .mp-today-diff.under{background:rgba(52,199,89,.25);color:#90EEA0}
     .mp-today-diff.over{background:rgba(255,59,48,.25);color:#FFB3AE}
     .mp-today-diff.exact{background:rgba(255,255,255,.2);color:white}
-    /* ── 세로 막대 그래프 (남은 공간 채움) ── */
-    .chart-panel{background:white;border-radius:14px;padding:9px 8px 5px;box-shadow:0 1px 4px rgba(0,0,0,.07);flex:1;display:flex;flex-direction:column;min-height:0}
-    .cp-title{font-size:11px;color:#8E8E93;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;padding:0 3px;flex-shrink:0}
-    .cp-legend{display:flex;gap:10px;padding:0 3px;margin-bottom:2px;flex-shrink:0}
+    /* ── 세로 막대 그래프 ── */
+    .chart-panel{background:white;border-radius:14px;padding:9px 8px 6px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    .cp-title{font-size:11px;color:#8E8E93;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;padding:0 3px}
+    .cp-legend{display:flex;gap:10px;padding:0 3px;margin-bottom:2px}
     .cp-legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:#8E8E93}
     .cp-legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
-    .bar-chart-area{position:relative;flex:1;overflow-x:hidden;overflow-y:hidden;min-height:0}
+    /* 그래프 높이: 뷰포트에서 위쪽 요소들 높이를 뺀 나머지 */
+    .bar-chart-area{position:relative;height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 310px);overflow-x:hidden;overflow-y:hidden;min-height:120px;max-height:340px}
     .bar-chart-inner{display:flex;align-items:flex-end;gap:2px;height:100%;width:100%;padding:0 2px}
-    .bar-col{display:flex;flex-direction:column;align-items:center;gap:0;flex:1;min-width:0;height:100%;justify-content:flex-end;position:relative}
+    .bar-col{display:flex;flex-direction:column;align-items:center;flex:1;min-width:0;height:100%;justify-content:flex-end;position:relative}
     .bar-col.is-today .bar-target{outline:1.5px solid #4F46E5;outline-offset:1px;border-radius:2px}
-    .bar-target{position:absolute;bottom:16px;width:100%;border-radius:2px 2px 0 0;opacity:.25;background:#4F46E5}
-    .bar-actual{position:absolute;bottom:16px;width:70%;border-radius:2px 2px 0 0;z-index:1}
-    .bar-day-label{position:absolute;bottom:0;font-size:8px;color:#8E8E93;text-align:center;line-height:14px;width:100%}
+    .bar-target{position:absolute;bottom:14px;width:100%;border-radius:2px 2px 0 0;opacity:.25;background:#4F46E5}
+    .bar-actual{position:absolute;bottom:14px;width:70%;border-radius:2px 2px 0 0;z-index:1}
+    .bar-day-label{position:absolute;bottom:0;font-size:8px;color:#8E8E93;text-align:center;line-height:13px;width:100%}
     .bar-day-label.is-today{color:#4F46E5;font-weight:700}
     .bar-day-label.is-sun{color:#FF3B30}
     .bar-day-label.is-sat{color:#4F46E5}
@@ -1118,8 +1114,8 @@ function renderHome(){
 
     bars += `
       <div class="bar-col${isToday?' is-today':''}${isFuture?' bar-future':''}">
-        <div class="bar-target" data-pct="${targetH}"></div>
-        <div class="bar-actual" data-pct="${actualH}" style="background:${actualColor}"></div>
+        <div class="bar-target" style="height:${targetH}%"></div>
+        <div class="bar-actual" style="height:${actualH}%;background:${actualColor}"></div>
         <div class="${dayLabelClass}">${day}</div>
       </div>`;
   }
@@ -1138,21 +1134,6 @@ function renderHome(){
     </div>`;
 
   el.innerHTML = `<div class="home-wrap"><div class="top-row">${leftPanel}${todayPanel}</div>${rightPanel}</div>`;
-  // 막대 높이를 실제 bar-chart-area 높이 기준으로 다시 계산
-  requestAnimationFrame(()=>{
-    const area = el.querySelector('.bar-chart-area');
-    if(!area) return;
-    const areaH = area.clientHeight - 16; // 16px = 날짜 라벨 영역
-    if(areaH <= 0) return;
-    el.querySelectorAll('.bar-target').forEach(b=>{
-      const pct = parseFloat(b.dataset.pct||0);
-      b.style.height = Math.round(pct/100*areaH)+'px';
-    });
-    el.querySelectorAll('.bar-actual').forEach(b=>{
-      const pct = parseFloat(b.dataset.pct||0);
-      b.style.height = Math.round(pct/100*areaH)+'px';
-    });
-  });
 
 }
 
