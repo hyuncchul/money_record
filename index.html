@@ -162,9 +162,9 @@
     .mp-today-diff.over{background:rgba(255,59,48,.25);color:#FFB3AE}
     .mp-today-diff.exact{background:rgba(255,255,255,.2);color:white}
     /* ── 세로 막대 그래프 ── */
-    .chart-panel{background:white;border-radius:16px;padding:12px 8px 6px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
-    .cp-title{font-size:12px;color:#8E8E93;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px;padding:0 4px}
-    .cp-legend{display:flex;gap:10px;padding:0 4px;margin-bottom:4px}
+    .chart-panel{background:white;border-radius:16px;padding:10px 8px 6px;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+    .cp-title{font-size:12px;color:#8E8E93;font-weight:600;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;padding:0 4px}
+    .cp-legend{display:flex;gap:10px;padding:0 4px;margin-bottom:2px}
     .cp-legend-item{display:flex;align-items:center;gap:4px;font-size:11px;color:#8E8E93}
     .cp-legend-dot{width:7px;height:7px;border-radius:2px;flex-shrink:0}
     .bar-chart-area{position:relative;height:195px;overflow-x:auto;overflow-y:hidden}
@@ -1124,7 +1124,7 @@ function renderHome(){
       <div class="cp-title">${lang==='ko'?'일별 지출 vs 목표':'Daily vs Target'}</div>
       <div class="cp-legend">
         <div class="cp-legend-item"><div class="cp-legend-dot" style="background:#4F46E5;opacity:.3"></div>${lang==='ko'?'목표':'Target'} ${fmt(b.daily)}</div>
-        <div class="cp-legend-item"><div class="cp-legend-dot" style="background:#34C759"></div>${lang==='ko'?'미달':'Under'}</div>
+        <div class="cp-legend-item"><div class="cp-legend-dot" style="background:#34C759"></div>${lang==='ko'?'달성':'Goal met'}</div>
         <div class="cp-legend-item"><div class="cp-legend-dot" style="background:#FF3B30"></div>${lang==='ko'?'초과':'Over'}</div>
       </div>
       <div class="bar-chart-area">
