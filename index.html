@@ -134,9 +134,10 @@
     .toast.show{opacity:1}
     input[type="file"]{display:none}
     /* ── 홈 대시보드 ── */
-    .home-wrap{display:grid;grid-template-columns:1fr 1fr;gap:10px;align-items:start}
+    .home-wrap{display:flex;flex-direction:column;gap:10px}
 
-    /* 왼쪽: 월 누적 */
+    /* 상단: 월 누적 + 오늘 */
+    .top-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .month-panel{background:linear-gradient(160deg,#4F46E5 0%,#7C3AED 100%);border-radius:16px;padding:14px 13px;color:white}
     .mp-title{font-size:9px;opacity:.75;font-weight:600;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
     .mp-row{margin-bottom:10px}
@@ -161,7 +162,7 @@
     .cp-legend{display:flex;gap:8px;padding:0 4px;margin-bottom:8px}
     .cp-legend-item{display:flex;align-items:center;gap:3px;font-size:8px;color:#8E8E93}
     .cp-legend-dot{width:6px;height:6px;border-radius:2px;flex-shrink:0}
-    .bar-chart-area{position:relative;height:180px;overflow-x:auto;overflow-y:hidden}
+    .bar-chart-area{position:relative;height:200px;overflow-x:auto;overflow-y:hidden}
     .bar-chart-inner{display:flex;align-items:flex-end;gap:2px;height:100%;min-width:100%;padding:0 2px}
     .bar-col{display:flex;flex-direction:column;align-items:center;gap:1px;flex:1;min-width:7px;height:100%;justify-content:flex-end;position:relative}
     .bar-col.is-today .bar-target{outline:1.5px solid #4F46E5;outline-offset:1px;border-radius:2px}
@@ -1011,7 +1012,7 @@ function renderHome(){
   const maxActual = Math.max(...Object.values(dayMap).map(v=>v.total), b.daily);
   const chartMax = Math.max(b.daily * 1.6, maxActual);
 
-  // ── 왼쪽 패널 HTML ──
+  // ── 왼쪽 패널 HTML (월 누적) ──
   const pBarColor = monthPct>90?'#FF3B30':monthPct>70?'#F59E0B':'rgba(255,255,255,.9)';
   const leftPanel = `
     <div class="month-panel">
@@ -1043,22 +1044,48 @@ function renderHome(){
       </div>
 
       <div class="mp-row">
-        <div class="mp-label">${lang==='ko'?'일 평균 지출':'Daily avg'}</div>
+        <div class="mp-label">${lang==='ko'?'일 평균':'Daily avg'}</div>
         <div class="mp-val" style="font-size:14px">${fmt(avgPerDay)}</div>
       </div>
 
-      <div class="mp-row">
-        <div class="mp-label">${lang==='ko'?'예상 월말 지출':'Proj. total'}</div>
+      <div class="mp-row" style="margin-bottom:0">
+        <div class="mp-label">${lang==='ko'?'예상 월말':'Proj.'}</div>
         <div class="mp-val" style="font-size:13px;${projectedTotal>b.monthly?'color:#FFB3AE':''}">${fmt(projectedTotal)}</div>
+      </div>
+    </div>`;
+
+  // ── 오른쪽 패널 HTML (오늘 현황) ──
+  const todayPanel = `
+    <div class="month-panel" style="background:linear-gradient(160deg,#0F6E56 0%,#1D9E75 100%)">
+      <div class="mp-title">📅 ${lang==='ko'?'오늘 ('+todayNum+'일)':'Today ('+todayNum+')'}</div>
+
+      <div class="mp-row">
+        <div class="mp-label">${lang==='ko'?'일 목표':'Target'}</div>
+        <div class="mp-val">${fmt(b.daily)}</div>
+      </div>
+
+      <div class="mp-row">
+        <div class="mp-label">${lang==='ko'?'오늘 지출':'Spent'}</div>
+        <div class="mp-val">${fmt(todayExp)}</div>
+      </div>
+
+      <div class="mp-progress-track">
+        <div class="mp-progress-fill" style="width:${Math.min(100,Math.round(todayExp/b.daily*100))}%;background:${todayExp>b.daily?'#FF3B30':'rgba(255,255,255,.9)'}"></div>
+      </div>
+      <div class="mp-progress-labels">
+        <span>0</span><span>${fmt(b.daily)}</span>
       </div>
 
       <div class="mp-divider"></div>
 
-      <div class="mp-today-box">
-        <div class="mp-today-label">📅 ${lang==='ko'?'오늘 ('+todayNum+'일)':'Today ('+todayNum+')'}</div>
-        <div class="mp-today-val">${fmt(todayExp)}</div>
-        <div class="mp-today-label" style="margin-top:3px">${lang==='ko'?'목표':'Target'}: ${fmt(b.daily)}</div>
-        <div class="mp-today-diff ${diffClass}">${diffText}</div>
+      <div class="mp-row" style="margin-bottom:0">
+        <div class="mp-label">${lang==='ko'?'목표 대비':'vs Target'}</div>
+        <div class="mp-today-diff ${diffClass}" style="margin-top:4px;font-size:16px">${diffText}</div>
+      </div>
+
+      <div class="mp-row" style="margin-top:10px;margin-bottom:0">
+        <div class="mp-label">${lang==='ko'?'이번 달 남은 날':'Days left'}</div>
+        <div class="mp-val" style="font-size:14px">${daysInMonth - todayNum}${lang==='ko'?'일':'d'}</div>
       </div>
     </div>`;
 
@@ -1100,7 +1127,8 @@ function renderHome(){
       </div>
     </div>`;
 
-  el.innerHTML = `<div class="home-wrap">${leftPanel}${rightPanel}</div>`;
+  el.innerHTML = `<div class="home-wrap"><div class="top-row">${leftPanel}${todayPanel}</div>${rightPanel}</div>`;
+
 }
 
 // ── 탭 ──
