@@ -1054,7 +1054,7 @@ function renderHome(){
       </div>
 
       <div class="mp-row" style="margin-bottom:0">
-        <div class="mp-label">${lang==='ko'?'예상 월말':'Proj.'}</div>
+        <div class="mp-label">${lang==='ko'?'예상 월말 소비 총 금액':'Projected Month-End Total'}</div>
         <div class="mp-val" style="font-size:13px;${projectedTotal>b.monthly?'color:#FFB3AE':''}">${fmt(projectedTotal)}</div>
       </div>
     </div>`;
@@ -1084,7 +1084,7 @@ function renderHome(){
       <div class="mp-divider"></div>
 
       <div class="mp-row" style="margin-bottom:0">
-        <div class="mp-label">${lang==='ko'?'목표 대비':'vs Target'}</div>
+        <div class="mp-label">${lang==='ko'?'일일 목표 대비':'vs Daily Target'}</div>
         <div class="mp-today-diff ${diffClass}" style="margin-top:4px;font-size:16px">${diffText}</div>
       </div>
 
